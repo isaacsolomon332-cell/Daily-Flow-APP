@@ -1,0 +1,27 @@
+meta {
+  name: signup
+  type: http
+  seq: NaN
+}
+
+post {
+  url: http://localhost:8081/api/auth/signup
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "fullName": "Isaac Solomon",
+    "email": "princevincent977@gmail.com",
+    "username": "isaac",
+    "phoneNumber": "+2348123456789",
+    "password": "TestPass123!",
+    "confirmPassword": "TestPass123!"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

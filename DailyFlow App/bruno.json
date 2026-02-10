@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "DailyFlow App",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

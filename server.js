@@ -52,7 +52,7 @@ DailyFlow Backend Server Started!
  Environment: ${process.env.NODE_ENV}
  Database: Connected
  Frontend URL: ${process.env.FRONTEND_URL}
- API Documentation: http://localhost:${PORT}/api/health
+ API Documentation: http://localhost:${PORT}
   `);
 });
 
