@@ -32,6 +32,7 @@ const userSchema = new mongoose.Schema({
   phoneNumber: {
     type: String,
     trim: true,
+    default: '',
     match: [/^[\+]?[1-9][0-9\-\(\)\.]{9,}$/, 'Please provide a valid phone number']
   },
   
@@ -42,8 +43,22 @@ const userSchema = new mongoose.Schema({
     select: false
   },
   
+  bio: {
+    type: String,
+    trim: true,
+    maxlength: [500, 'Bio cannot exceed 500 characters'],
+    default: ''
+  },
+  
+  dailyReminderTime: {
+    type: String,
+    default: '09:00',
+    match: [/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Please use HH:MM format (24-hour)']
+  },
+  
   lastLogin: {
-    type: Date
+    type: Date,
+    default: null
   },
   
   loginAttempts: {
@@ -60,17 +75,8 @@ const userSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
-  },
-  
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  
-  updatedAt: {
-    type: Date,
-    default: Date.now
   }
+
 }, {
   timestamps: true,
   toJSON: {
@@ -91,10 +97,13 @@ const userSchema = new mongoose.Schema({
   }
 });
 
+// Indexes for better query performance
 userSchema.index({ email: 1 }, { unique: true });
 userSchema.index({ username: 1 }, { unique: true });
 userSchema.index({ createdAt: -1 });
+userSchema.index({ isActive: 1 });
 
+// Hash password before saving
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
   
@@ -107,15 +116,19 @@ userSchema.pre('save', async function(next) {
   }
 });
 
+// Virtual for checking if account is locked
 userSchema.virtual('isLocked').get(function() {
   return !!(this.lockUntil && this.lockUntil > Date.now());
 });
 
+// Compare password method
 userSchema.methods.comparePassword = async function(candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
+// Increment login attempts on failed login
 userSchema.methods.incrementLoginAttempts = async function() {
+  // If lock has expired, reset attempts
   if (this.lockUntil && this.lockUntil < Date.now()) {
     return await this.updateOne({
       $set: { loginAttempts: 1 },
@@ -125,6 +138,7 @@ userSchema.methods.incrementLoginAttempts = async function() {
   
   const updates = { $inc: { loginAttempts: 1 } };
   
+  // Lock account if max attempts reached
   if (this.loginAttempts + 1 >= parseInt(process.env.MAX_LOGIN_ATTEMPTS || 5) && !this.isLocked) {
     updates.$set = {
       lockUntil: Date.now() + (parseInt(process.env.LOCKOUT_TIME_MINUTES || 15) * 60 * 1000)
@@ -134,11 +148,20 @@ userSchema.methods.incrementLoginAttempts = async function() {
   return await this.updateOne(updates);
 };
 
+// Reset login attempts on successful login
 userSchema.methods.resetLoginAttempts = async function() {
   return await this.updateOne({
     $set: { loginAttempts: 0 },
     $unset: { lockUntil: 1 }
   });
+};
+
+// Soft delete account
+userSchema.methods.softDelete = async function() {
+  this.isActive = false;
+  this.email = `deleted_${Date.now()}_${this.email}`;
+  this.username = `deleted_${Date.now()}_${this.username}`;
+  await this.save();
 };
 
 const User = mongoose.model('User', userSchema);
