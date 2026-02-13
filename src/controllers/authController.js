@@ -6,6 +6,27 @@ const authController = {
     try {
       const { fullName, email, username, phoneNumber, password } = req.body;
       
+      // PHONE NUMBER VALIDATION - EXACTLY 11 DIGITS
+      if (!phoneNumber) {
+        return res.status(400).json({
+          success: false,
+          message: 'Phone number is required',
+          errors: [{ field: 'phoneNumber', message: 'Phone number is required' }]
+        });
+      }
+      
+      // Remove any non-digit characters
+      const cleanPhone = phoneNumber.replace(/\D/g, '');
+      
+      // Check if exactly 11 digits
+      if (cleanPhone.length !== 11) {
+        return res.status(400).json({
+          success: false,
+          message: 'Phone number must be exactly 11 digits',
+          errors: [{ field: 'phoneNumber', message: 'Phone number must be exactly 11 digits' }]
+        });
+      }
+      
       const existingUser = await User.findOne({
         $or: [{ email }, { username }]
       });
@@ -21,7 +42,7 @@ const authController = {
         fullName,
         email,
         username,
-        phoneNumber: phoneNumber || undefined,
+        phoneNumber: cleanPhone, // Store the cleaned 11-digit number
         password
       });
       
@@ -95,10 +116,8 @@ const authController = {
       const isPasswordValid = await user.comparePassword(password);
       
       if (!isPasswordValid) {
-        // Increment login attempts
         await user.incrementLoginAttempts();
         
-        // Check if account is now locked
         const updatedUser = await User.findById(user._id).select('+loginAttempts +lockUntil');
         if (updatedUser.isLocked) {
           return res.status(423).json({
@@ -110,26 +129,22 @@ const authController = {
         return res.status(401).json(genericError);
       }
       
-      // Reset login attempts on successful login
       await user.resetLoginAttempts();
       
-      // Update last login
       user.lastLogin = new Date();
       await user.save();
       
-      // Generate token
       const token = generateToken(user._id);
       
-      // Set cookie
       res.cookie('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        maxAge: 7 * 24 * 60 * 60 * 1000,
         path: '/'
       });
       
-        res.status(200).json({
+      res.status(200).json({
         success: true,
         message: 'Login successful',
         data: {
