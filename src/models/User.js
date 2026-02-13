@@ -29,11 +29,13 @@ const userSchema = new mongoose.Schema({
     match: [/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores']
   },
   
+  // FIXED: Phone number now accepts ANY value (or empty)
   phoneNumber: {
     type: String,
     trim: true,
     default: '',
-    match: [/^[\+]?[1-9][0-9\-\(\)\.]{9,}$/, 'Please provide a valid phone number']
+    // REMOVED the match validation - now accepts anything!
+    // No regex validation means any input is allowed
   },
   
   password: {
