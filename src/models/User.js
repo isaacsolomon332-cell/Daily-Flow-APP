@@ -30,14 +30,14 @@ const userSchema = new mongoose.Schema({
   },
   
   // FIXED: Phone number now accepts ANY value (or empty)
-  phoneNumber: {
+ phoneNumber: {
     type: String,
     trim: true,
     default: '',
-    // REMOVED the match validation - now accepts anything!
-    // No regex validation means any input is allowed
-  },
-  
+    // REMOVE the match validation completely
+    // No validation - accepts anything
+},
+
   password: {
     type: String,
     required: [true, 'Password is required'],
